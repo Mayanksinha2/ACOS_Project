@@ -1,0 +1,8 @@
+Problem Definition
+Inputs
+Objective Representation
+Conflict Detection
+Decision Ranking
+Output
+Computational Complexity
+Future Extensions

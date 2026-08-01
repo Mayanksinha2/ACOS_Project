@@ -25,8 +25,8 @@ class RuleReasoner(BaseReasoner):
         )
 
         demand = self.business_state.market.get(
-            "demand",
-            50
+            "adjusted_demand",
+            self.business_state.market.get("demand", 50),
         )
 
         product_id = self.business_state.metrics.get(

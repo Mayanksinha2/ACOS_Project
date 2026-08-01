@@ -27,17 +27,60 @@ class ScenarioInput:
     unit_cost: float = 420.0
     marketing_budget: float = 25000.0
 
+    @property
+    def calculated_conversion_rate(self) -> float:
+        return self.sales / self.visitors if self.visitors > 0 else 0.0
+
+    @property
+    def adjusted_demand(self) -> float:
+        return min(100.0, max(0.0, self.demand * self.demand_multiplier))
+
+    @property
+    def average_selling_price(self) -> float:
+        return self.revenue / self.sales if self.sales > 0 else 0.0
+
     def validate(self) -> None:
         if not self.product_id.strip():
             raise ValueError("Product ID is required.")
         if self.inventory < 0 or self.visitors < 0 or self.sales < 0:
             raise ValueError("Inventory, visitors, and sales cannot be negative.")
+        if self.sales > self.visitors and self.visitors > 0:
+            raise ValueError("Sales cannot exceed visitors.")
         if not 0 <= self.demand <= 100:
             raise ValueError("Demand must be between 0 and 100.")
         if not 0 <= self.conversion_rate <= 1:
             raise ValueError("Conversion rate must be between 0 and 1.")
         if self.demand_multiplier <= 0 or self.competitor_price_factor <= 0:
             raise ValueError("Demand and competitor factors must be positive.")
+        if min(self.current_price, self.unit_cost, self.marketing_budget, self.advertising_cost, self.revenue) < 0:
+            raise ValueError("Price, cost, budget, advertising cost, and revenue cannot be negative.")
+
+    def validation_warnings(self) -> list[str]:
+        warnings: list[str] = []
+        expected_conversion = self.calculated_conversion_rate
+        if abs(self.conversion_rate - expected_conversion) > 0.0001:
+            warnings.append(
+                f"Conversion rate was corrected from {self.conversion_rate * 100:.2f}% "
+                f"to {expected_conversion * 100:.2f}% using sales ÷ visitors."
+            )
+
+        if self.sales > 0 and self.current_price > 0:
+            realized_price = self.average_selling_price
+            difference = abs(realized_price - self.current_price) / self.current_price
+            if difference > 0.05:
+                warnings.append(
+                    f"Average realized selling price is ₹{realized_price:,.2f}, which differs "
+                    f"from the current price ₹{self.current_price:,.2f} by more than 5%."
+                )
+
+        simple_profit = self.revenue - (self.sales * self.unit_cost) - self.advertising_cost
+        if abs(simple_profit - self.profit) > max(100.0, abs(simple_profit) * 0.10):
+            warnings.append(
+                f"Entered profit ₹{self.profit:,.2f} differs from the simple calculated profit "
+                f"₹{simple_profit:,.2f}. This may be valid when shipping, commission, returns, "
+                "taxes, or other operating costs are included."
+            )
+        return warnings
 
 
 class ACOSUIAdapter:
@@ -48,11 +91,13 @@ class ACOSUIAdapter:
 
     def build_state(self, scenario: ScenarioInput):
         scenario.validate()
+        # Conversion is derived from sales and visitors, removing contradictory input.
+        conversion_rate = scenario.calculated_conversion_rate
         return BusinessStateBuilder.build_from_manual_input(
             product_id=scenario.product_id.strip(),
             inventory=scenario.inventory,
             demand=scenario.demand,
-            conversion_rate=scenario.conversion_rate,
+            conversion_rate=conversion_rate,
             advertising_cost=scenario.advertising_cost,
             visitors=scenario.visitors,
             sales=scenario.sales,
@@ -65,6 +110,7 @@ class ACOSUIAdapter:
                 "current_price": scenario.current_price,
                 "unit_cost": scenario.unit_cost,
                 "marketing_budget": scenario.marketing_budget,
+                "average_selling_price": scenario.average_selling_price,
             },
         )
 
@@ -73,7 +119,15 @@ class ACOSUIAdapter:
 
     def run_payload(self, scenario: ScenarioInput) -> dict[str, Any]:
         result = self.run(scenario)
-        return self.payload_from_result(result)
+        payload = self.payload_from_result(result)
+        payload["input_warnings"] = scenario.validation_warnings()
+        payload["calculated_metrics"] = {
+            "conversion_rate": scenario.calculated_conversion_rate,
+            "adjusted_demand": scenario.adjusted_demand,
+            "average_selling_price": scenario.average_selling_price,
+            "recommended_marketing_budget_if_increased_10_percent": scenario.marketing_budget * 1.10,
+        }
+        return payload
 
     def payload_from_result(self, result: Any) -> dict[str, Any]:
         proposals = []

@@ -293,23 +293,23 @@ class ACOSApplicationService:
         be reused safely for multiple decision cycles.
         """
 
-        pending = list(
-            self.decision_manager
-            .get_pending_proposals()
-            or []
+        reset_cycle = getattr(
+            self.decision_manager,
+            "reset_cycle",
+            None,
         )
 
-        for proposal in pending:
-            proposal_id = getattr(
-                proposal,
-                "proposal_id",
-                None,
-            )
+        if callable(reset_cycle):
+            reset_cycle()
+            return
 
+        pending = list(
+            self.decision_manager.get_pending_proposals() or []
+        )
+        for proposal in pending:
+            proposal_id = getattr(proposal, "proposal_id", None)
             if proposal_id:
-                self.decision_manager.remove_proposal(
-                    proposal_id
-                )
+                self.decision_manager.remove_proposal(proposal_id)
 
     @staticmethod
     def _get_agent_name(

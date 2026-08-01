@@ -91,8 +91,17 @@ class BusinessStateBuilder:
             "visitors": int(visitors),
         }
 
+        adjusted_demand = min(
+            100.0,
+            max(0.0, float(demand) * float(demand_multiplier)),
+        )
+
         market: Dict[str, Any] = {
-            "demand": float(demand),
+            # Preserve the raw user input and expose one canonical value
+            # for agents that need the seasonally adjusted demand.
+            "base_demand": float(demand),
+            "demand": adjusted_demand,
+            "adjusted_demand": adjusted_demand,
             "advertising_cost": float(advertising_cost),
             "season": str(season).upper(),
             "demand_multiplier": float(demand_multiplier),

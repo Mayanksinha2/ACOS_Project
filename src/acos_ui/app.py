@@ -26,27 +26,30 @@ def _scenario_form() -> ScenarioInput | None:
             marketing_budget = c2.number_input("Marketing budget (₹)", min_value=0.0, value=25000.0, step=500.0)
         with market:
             c1, c2, c3 = st.columns(3)
-            demand = c1.slider("Demand score", 0.0, 100.0, 80.0, 1.0)
+            demand = c1.slider("Base demand score", 0.0, 100.0, 80.0, 1.0)
             season = c2.selectbox("Season", ["NORMAL", "FESTIVAL", "SALE", "OFF_SEASON"])
             demand_multiplier = c3.number_input("Demand multiplier", min_value=0.1, value=1.2, step=0.1)
             competitor_price_factor = c1.number_input("Competitor price factor", min_value=0.1, value=1.0, step=0.05)
             advertising_cost = c2.number_input("Advertising cost (₹)", min_value=0.0, value=1000.0, step=100.0)
+            c3.caption("Adjusted demand is calculated as base demand × multiplier (capped at 100).")
         with performance:
             c1, c2, c3 = st.columns(3)
             visitors = c1.number_input("Visitors", min_value=0, value=500, step=10)
             sales = c2.number_input("Sales", min_value=0, value=20, step=1)
-            conversion_rate_pct = c3.number_input("Conversion rate (%)", min_value=0.0, max_value=100.0, value=4.0, step=0.1)
+            c3.caption("Conversion rate is calculated automatically from sales ÷ visitors.")
             revenue = c1.number_input("Revenue (₹)", min_value=0.0, value=15980.0, step=100.0)
             profit = c2.number_input("Profit (₹)", value=6500.0, step=100.0)
 
         submitted = st.form_submit_button("Run ACOS", type="primary", use_container_width=True)
         if not submitted:
             return None
+
+        conversion_rate = (int(sales) / int(visitors)) if int(visitors) > 0 else 0.0
         return ScenarioInput(
             product_id=product_id,
             inventory=int(inventory),
             demand=float(demand),
-            conversion_rate=float(conversion_rate_pct) / 100.0,
+            conversion_rate=conversion_rate,
             advertising_cost=float(advertising_cost),
             visitors=int(visitors),
             sales=int(sales),
@@ -65,7 +68,7 @@ def main() -> None:
     st.set_page_config(page_title="ACOS Demonstration Platform", page_icon="⚙️", layout="wide")
     initialize_session(st)
     st.title("ACOS Autonomous Commerce Optimization")
-    st.caption("Interactive research demonstration: agents → conflicts → negotiation → MOCRA → final decision")
+    st.caption("Interactive research demonstration: agents → conflict analysis → negotiation when required → MOCRA → coordinated final plan")
 
     with st.sidebar:
         st.header("System")
@@ -79,7 +82,7 @@ def main() -> None:
     scenario = _scenario_form()
     if scenario is not None:
         try:
-            with st.spinner("Agents are analyzing and negotiating..."):
+            with st.spinner("Agents are analyzing the scenario..."):
                 payload = ACOSUIAdapter().run_payload(scenario)
             save_run(st, payload)
             if payload.get("successful"):
@@ -93,6 +96,18 @@ def main() -> None:
     if payload:
         st.divider()
         render_summary(st, payload)
+
+        warnings = payload.get("input_warnings", [])
+        for warning in warnings:
+            st.warning(warning)
+
+        calculated = payload.get("calculated_metrics", {})
+        if calculated:
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Calculated conversion", f"{calculated.get('conversion_rate', 0) * 100:.2f}%")
+            c2.metric("Adjusted demand", f"{calculated.get('adjusted_demand', 0):.1f}/100")
+            c3.metric("Average selling price", f"₹{calculated.get('average_selling_price', 0):,.2f}")
+
         overview, agents, resolution, decision, data, history = st.tabs([
             "Overview", "Agent proposals", "Conflict & negotiation", "Final decision", "Raw result", "Session history"
         ])

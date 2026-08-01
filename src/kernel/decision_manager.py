@@ -59,6 +59,14 @@ class DecisionManager:
             NegotiationResult
         ] = None
 
+
+    def reset_cycle(self) -> None:
+        """Clear per-run state while preserving long-term knowledge/history."""
+        self._pending_decisions.clear()
+        self._conflict_results = []
+        self._latest_mocra_result = None
+        self._latest_negotiation_result = None
+
     def add_proposal(
         self,
         decision: CommerceDecision,
@@ -226,20 +234,32 @@ class DecisionManager:
         self,
     ) -> Optional[NegotiationResult]:
         """
-        Run adaptive negotiation over the pending proposals.
+        Negotiate only explicit price-related proposals that belong
+        to a detected conflict. Cross-domain actions are preserved
+        for the coordinated plan and are not forced into price units.
         """
 
-        proposals = self.get_pending_proposals()
+        conflict_proposal_ids = {
+            proposal_id
+            for result in self._conflict_results
+            if result.requires_negotiation
+            for proposal_id in result.proposal_ids
+        }
+
+        proposals = [
+            proposal
+            for proposal in self.get_pending_proposals()
+            if proposal.proposal_id in conflict_proposal_ids
+            and self._negotiation_engine.is_price_related(proposal)
+        ]
 
         if len(proposals) < 2:
+            self._latest_negotiation_result = None
             return None
 
         self._latest_negotiation_result = (
-            self._negotiation_engine.negotiate(
-                proposals
-            )
+            self._negotiation_engine.negotiate(proposals)
         )
-
         return self._latest_negotiation_result
 
     def get_latest_negotiation_result(
@@ -286,36 +306,46 @@ class DecisionManager:
         self,
     ):
         """
-        Main decision-orchestration method.
+        Build the final response from already-computed resolution results.
 
-        Process:
-        1. Detect proposal conflicts.
-        2. Attempt negotiation when required.
-        3. Return the negotiated agreement when successful.
-        4. Otherwise resolve proposals using MOCRA.
+        This method intentionally does not rerun conflict detection,
+        negotiation, or MOCRA. It reuses the exact objects created earlier
+        in the application pipeline, preventing duplicate negotiation IDs.
+        Compatible actions from every domain are retained in
+        ``coordinated_actions``.
         """
 
-        self.detect_conflicts()
+        proposals = self.get_pending_proposals()
+        coordinated_actions = [
+            {
+                "agent_id": proposal.agent_id,
+                "goal": proposal.goal,
+                "business_action": proposal.business_action,
+                "confidence": proposal.confidence,
+                "risk": proposal.risk,
+                "proposal_id": proposal.proposal_id,
+            }
+            for proposal in proposals
+        ]
 
-        if self.has_negotiation_required():
-            negotiation_result = (
-                self.negotiate_pending_proposals()
-            )
-
-            if (
-                negotiation_result is not None
-                and negotiation_result.agreement_reached
-            ):
-                return {
-                    "decision_type": "NEGOTIATED",
-                    "result": negotiation_result,
-                }
-
-        mocra_result = (
+        if self._latest_mocra_result is None:
             self.resolve_pending_proposals()
-        )
+
+        if (
+            self._latest_negotiation_result is not None
+            and self._latest_negotiation_result.agreement_reached
+        ):
+            return {
+                "decision_type": "NEGOTIATED",
+                "result": self._latest_negotiation_result,
+                "coordinated_actions": coordinated_actions,
+                "mocra_result": self._latest_mocra_result,
+            }
 
         return {
             "decision_type": "MOCRA",
-            "result": mocra_result,
+            "result": self._latest_mocra_result,
+            "coordinated_actions": coordinated_actions,
+            "mocra_result": self._latest_mocra_result,
         }
+

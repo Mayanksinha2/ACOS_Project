@@ -1,0 +1,171 @@
+from __future__ import annotations
+
+from dataclasses import asdict
+from typing import Any
+
+from .application_adapter import ScenarioInput
+
+
+SCENARIO_PRESETS: dict[str, dict[str, Any]] = {
+    "Custom scenario": asdict(ScenarioInput()),
+    "Festival sale": {
+        "product_id": "PROD-FESTIVAL-001",
+        "inventory": 80,
+        "demand": 72.0,
+        "conversion_rate": 0.041,
+        "advertising_cost": 6500.0,
+        "visitors": 3800,
+        "sales": 156,
+        "revenue": 140244.0,
+        "profit": 31500.0,
+        "season": "FESTIVAL",
+        "demand_multiplier": 1.35,
+        "competitor_price_factor": 1.08,
+        "current_price": 999.0,
+        "unit_cost": 420.0,
+        "marketing_budget": 85000.0,
+    },
+    "Low conversion": {
+        "product_id": "PROD-CONVERSION-001",
+        "inventory": 45,
+        "demand": 48.0,
+        "conversion_rate": 0.018,
+        "advertising_cost": 4800.0,
+        "visitors": 5000,
+        "sales": 90,
+        "revenue": 80910.0,
+        "profit": 11800.0,
+        "season": "SALE",
+        "demand_multiplier": 1.1,
+        "competitor_price_factor": 0.93,
+        "current_price": 999.0,
+        "unit_cost": 430.0,
+        "marketing_budget": 70000.0,
+    },
+    "Inventory overstock": {
+        "product_id": "PROD-OVERSTOCK-001",
+        "inventory": 320,
+        "demand": 28.0,
+        "conversion_rate": 0.026,
+        "advertising_cost": 3000.0,
+        "visitors": 2400,
+        "sales": 62,
+        "revenue": 55738.0,
+        "profit": 7600.0,
+        "season": "OFF_SEASON",
+        "demand_multiplier": 0.85,
+        "competitor_price_factor": 0.97,
+        "current_price": 899.0,
+        "unit_cost": 360.0,
+        "marketing_budget": 40000.0,
+    },
+    "Low inventory": {
+        "product_id": "PROD-LOWSTOCK-001",
+        "inventory": 8,
+        "demand": 86.0,
+        "conversion_rate": 0.071,
+        "advertising_cost": 5200.0,
+        "visitors": 1800,
+        "sales": 128,
+        "revenue": 140672.0,
+        "profit": 46800.0,
+        "season": "FESTIVAL",
+        "demand_multiplier": 1.4,
+        "competitor_price_factor": 1.12,
+        "current_price": 1099.0,
+        "unit_cost": 470.0,
+        "marketing_budget": 68000.0,
+    },
+    "Competitor price war": {
+        "product_id": "PROD-PRICEWAR-001",
+        "inventory": 95,
+        "demand": 58.0,
+        "conversion_rate": 0.032,
+        "advertising_cost": 7800.0,
+        "visitors": 4200,
+        "sales": 134,
+        "revenue": 120466.0,
+        "profit": 17600.0,
+        "season": "SALE",
+        "demand_multiplier": 1.15,
+        "competitor_price_factor": 0.78,
+        "current_price": 999.0,
+        "unit_cost": 410.0,
+        "marketing_budget": 90000.0,
+    },
+    "New product launch": {
+        "product_id": "PROD-LAUNCH-001",
+        "inventory": 150,
+        "demand": 42.0,
+        "conversion_rate": 0.025,
+        "advertising_cost": 15000.0,
+        "visitors": 2200,
+        "sales": 55,
+        "revenue": 71445.0,
+        "profit": 8200.0,
+        "season": "NORMAL",
+        "demand_multiplier": 1.2,
+        "competitor_price_factor": 1.0,
+        "current_price": 1299.0,
+        "unit_cost": 560.0,
+        "marketing_budget": 125000.0,
+    },
+    "High demand event": {
+        "product_id": "PROD-HIGHDEMAND-001",
+        "inventory": 65,
+        "demand": 94.0,
+        "conversion_rate": 0.084,
+        "advertising_cost": 9200.0,
+        "visitors": 5200,
+        "sales": 437,
+        "revenue": 436563.0,
+        "profit": 128000.0,
+        "season": "FESTIVAL",
+        "demand_multiplier": 1.5,
+        "competitor_price_factor": 1.18,
+        "current_price": 999.0,
+        "unit_cost": 390.0,
+        "marketing_budget": 110000.0,
+    },
+    "Weak marketing performance": {
+        "product_id": "PROD-WEAKMKT-001",
+        "inventory": 110,
+        "demand": 52.0,
+        "conversion_rate": 0.021,
+        "advertising_cost": 22000.0,
+        "visitors": 7600,
+        "sales": 160,
+        "revenue": 143840.0,
+        "profit": 9200.0,
+        "season": "NORMAL",
+        "demand_multiplier": 1.0,
+        "competitor_price_factor": 1.03,
+        "current_price": 899.0,
+        "unit_cost": 350.0,
+        "marketing_budget": 135000.0,
+    },
+}
+
+
+PRESET_DESCRIPTIONS: dict[str, str] = {
+    "Custom scenario": "Start with the standard ACOS demo values and edit every field.",
+    "Festival sale": "Strong seasonal demand with increased traffic and promotion.",
+    "Low conversion": "Traffic is healthy but few visitors are purchasing.",
+    "Inventory overstock": "Large stock position with weak demand and off-season pressure.",
+    "Low inventory": "High demand with an immediate stock-availability risk.",
+    "Competitor price war": "Competitors are substantially cheaper than the current product.",
+    "New product launch": "High marketing investment with limited conversion history.",
+    "High demand event": "Very strong demand, conversion, and revenue momentum.",
+    "Weak marketing performance": "High spend and traffic but poor conversion and profit.",
+}
+
+
+def get_preset(name: str) -> ScenarioInput:
+    values = SCENARIO_PRESETS.get(name)
+    if values is None:
+        raise KeyError(f"Unknown scenario preset: {name}")
+    return ScenarioInput(**values)
+
+
+def preset_names() -> list[str]:
+    return list(SCENARIO_PRESETS)

@@ -1,0 +1,50 @@
+{
+    "version": "1.0",
+    "entry_count": 2,
+    "entries": [
+        {
+            "knowledge_type": "AGENT_WEIGHT_INCREASE",
+            "target": "MarketingAgent",
+            "statement": "MarketingAgent has an average observed reward of 0.2029 across 3 evaluated outcomes.",
+            "confidence": 0.5606,
+            "expected_benefit": 0.20285699999999998,
+            "knowledge_id": "KNW-500C55D103EB",
+            "priority": "HIGH",
+            "evidence": {
+                "agent": "MarketingAgent",
+                "decision_count": 3,
+                "average_reward": 0.20285699999999998,
+                "minimum_reward": 0.202857,
+                "maximum_reward": 0.202857,
+                "success_rate": 1.0,
+                "failure_rate": 0.0,
+                "reliability": 0.6957856750000001
+            },
+            "source": "PHASE_3B_OUTCOME_FEEDBACK",
+            "occurrence_count": 1,
+            "is_active": true,
+            "created_at": "2026-08-02T11:25:49.516951",
+            "updated_at": "2026-08-02T11:25:49.516954"
+        },
+        {
+            "knowledge_type": "OPERATION_PREFERENCE",
+            "target": "DECREASE",
+            "statement": "Operation DECREASE has an average observed reward of 0.2029 across 3 evaluated outcomes.",
+            "confidence": 0.5606,
+            "expected_benefit": 0.20285699999999998,
+            "knowledge_id": "KNW-33BE031771B4",
+            "priority": "HIGH",
+            "evidence": {
+                "operation": "DECREASE",
+                "decision_count": 3,
+                "average_reward": 0.20285699999999998,
+                "success_rate": 1.0
+            },
+            "source": "PHASE_3B_OUTCOME_FEEDBACK",
+            "occurrence_count": 1,
+            "is_active": true,
+            "created_at": "2026-08-02T11:25:49.517765",
+            "updated_at": "2026-08-02T11:25:49.517769"
+        }
+    ]
+}

@@ -1,1 +1,0 @@
-print("ACOS Environment Ready")
